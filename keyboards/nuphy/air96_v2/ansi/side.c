@@ -261,7 +261,7 @@ void sys_led_show(void) {
         rgb_matrix_set_color(CAPS_LED, current_rgb.r, current_rgb.g, current_rgb.b);
     }
 
-    if (host_keyboard_led_state().num_lock) {
+    if (!host_keyboard_led_state().num_lock) {
         current_rgb.r = SIDE_BLINK_LIGHT;
         set_side_rgb(led_side + SYS_MARK, current_rgb.r, current_rgb.g, current_rgb.b);
     }
