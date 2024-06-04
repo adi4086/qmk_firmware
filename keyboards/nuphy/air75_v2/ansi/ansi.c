@@ -85,14 +85,19 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
             break;
 
         case RGB_MOD:
+        case RGB_RMOD:
         case RGB_HUI:
+        case RGB_HUD:
         case RGB_SPI:
         case RGB_SPD:
+        case RGB_SAI:
+        case RGB_SAD:
+        case RGB_M_P:
+        case RGB_TOG:
             if (game_mode_enable) { return false; }
             call_update_eeprom_data(&rgb_update);
             break;
         }
-
 
     switch (keycode) {
         case RF_DFU:
@@ -303,9 +308,21 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
             }
             return false;
 
+        case RGB_RMOD:
+            if (record->event.pressed) {
+                rgb_matrix_step_reverse_noeeprom();
+            }
+            return false;
+
         case RGB_HUI:
             if (record->event.pressed) {
                 rgb_matrix_increase_hue_noeeprom();
+            }
+            return false;
+
+        case RGB_HUD:
+            if (record->event.pressed) {
+                rgb_matrix_decrease_hue_noeeprom();
             }
             return false;
 
@@ -321,6 +338,30 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
             }
             return false;
 
+        case RGB_SAI:
+            if (record->event.pressed) {
+                rgb_matrix_increase_sat_noeeprom();
+            }
+            return false;
+
+       case RGB_SAD:
+            if (record->event.pressed) {
+                rgb_matrix_decrease_sat_noeeprom();
+            }
+            return false;
+
+       case RGB_M_P:
+            if (record->event.pressed) {
+                rgb_matrix_mode_noeeprom(RGB_MATRIX_SOLID_COLOR);
+            }
+            return false;
+
+       case RGB_TOG:
+            if (record->event.pressed) {
+                rgb_matrix_toggle_noeeprom();
+            }
+            return false;
+
         case SLEEP_MODE:
             if (record->event.pressed) {
                 user_config.sleep_mode++;
@@ -329,7 +370,7 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
                     sleep_time_delay = (NO_ACT_TIME_MINUTE * (4 * user_config.sleep_mode - 2));
                 } else { user_config.sleep_mode = 0; }
                 sleep_show_timer = timer_read32();
-            } 
+            }
             return false;
 
         case BAT_SHOW:
@@ -366,7 +407,7 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
             return false;
 
         case SLEEP_NOW:
-            if (record->event.pressed) { 
+            if (record->event.pressed) {
                 wait_ms(100);
             } else {
                 if (user_config.sleep_mode == 0) { return true; }
