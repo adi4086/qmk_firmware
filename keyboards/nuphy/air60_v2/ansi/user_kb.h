@@ -86,6 +86,11 @@ typedef enum {
 #define LINK_BT_3                 3
 #define LINK_USB                  4
 
+#define LED_RF_24                18
+#define LED_BT_1                 15
+#define LED_BT_2                 16
+#define LED_BT_3                 17
+
 #define UART_HEAD                 0x5A
 #define FUNC_VALID_LEN            32
 #define UART_MAX_LEN              64
@@ -110,6 +115,9 @@ typedef enum {
 
 #define RGB_MATRIX_GAME_MODE      RGB_MATRIX_GRADIENT_LEFT_RIGHT
 #define SIDE_MATRIX_GAME_MODE     4
+
+#define    MAC_BASE_LAYER_NUM     0
+#define    WIN_BASE_LAYER_NUM     3
 
 #define    CAPS_LED               28
 #define    LSHIFT_LED             41
