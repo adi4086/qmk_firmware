@@ -259,18 +259,18 @@ void dial_set(uint8_t dial_scan, bool led_sys_show) {
     }
 
     if (dial_scan & 0x02) {
-        if (dev_info.sys_sw_state != SYS_SW_MAC) {
-            if (led_sys_show) { sys_show_timer = timer_read32(); }
-            default_layer_set(1 << 0);
-            dev_info.sys_sw_state = SYS_SW_MAC;
-            keymap_config.nkro    = 0;
-        }
-    } else {
         if (dev_info.sys_sw_state != SYS_SW_WIN) {
             if (led_sys_show) { sys_show_timer = timer_read32(); }
-            default_layer_set(1 << 3);
+            default_layer_set(1 << WIN_BASE_LAYER_NUM);
             dev_info.sys_sw_state = SYS_SW_WIN;
             keymap_config.nkro    = 1;
+        }
+    } else {
+        if (dev_info.sys_sw_state != SYS_SW_MAC) {
+            if (led_sys_show) { sys_show_timer = timer_read32(); }
+            default_layer_set(1 << MAC_BASE_LAYER_NUM);
+            dev_info.sys_sw_state = SYS_SW_MAC;
+            keymap_config.nkro    = 0;
         }
     }
 }

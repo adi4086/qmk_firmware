@@ -501,7 +501,22 @@ void rf_led_show(void) {
 
     // light up corresponding BT/RF key
     if (dev_info.link_mode <= LINK_BT_3) {
-        uint8_t my_pos = dev_info.link_mode == LINK_RF_24 ? 23 : (19 + dev_info.link_mode);
+        uint8_t my_pos;
+        switch (dev_info.link_mode)
+        {
+            case LINK_BT_1:
+                my_pos = LED_BT_1;
+                break;
+            case LINK_BT_2:
+                my_pos = LED_BT_2;
+                break;
+            case LINK_BT_3:
+                my_pos = LED_BT_3;
+                break;
+            default:
+                my_pos = LED_RF_24;
+                break;
+        }
         rgb_required = 1;
         rgb_matrix_set_color(my_pos, current_rgb.r, current_rgb.g, current_rgb.b);
     }
