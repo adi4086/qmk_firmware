@@ -171,7 +171,7 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
         case LNK_RF ... LNK_BLE3:
             if (record->event.pressed) {
                 if (dev_info.link_mode != LINK_USB) {
-                    rf_sw_temp    = keycode - 2;
+                    rf_sw_temp    = keycode - LNK_RF;
                     f_rf_sw_press = 1;
                     break_all_key();
                 }
