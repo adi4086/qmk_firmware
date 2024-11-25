@@ -312,6 +312,7 @@ uint8_t uart_send_cmd(uint8_t cmd, uint8_t wait_ack, uint8_t delayms) {
             Usart_Mgr.TXDBuf[6] = dev_info.link_mode + 1;
 
             rf_linking_time     = 0;
+            link_timeout        = T_MIN * 4;
             rf_disconnect_delay = UINT8_MAX;
             f_rf_new_adv_ok     = 0;
             break;
@@ -440,6 +441,7 @@ void dev_sts_sync(void) {
 
             if (link_state_temp != RF_CONNECT) {
                 link_state_temp   = RF_CONNECT;
+                link_timeout      = user_config.sleep_mode == 1 ? (T_MIN * 1) : (T_MIN * 2);
                 rf_link_show_time = 0;
             }
         }
