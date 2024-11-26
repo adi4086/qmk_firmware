@@ -42,7 +42,7 @@ uint8_t  func_tab[32]        = {0};
 uint8_t  sync_lost           = 0;
 uint8_t  rf_disconnect_delay = 0;
 uint32_t uart_rpt_timer      = 0;
-uint32_t dequeue_timer       = 0;
+uint32_t dequeue_delay       = 0;
 
 report_buffer_t byte_report_buff = {0};
 report_buffer_t bit_report_buff  = {0};
