@@ -43,7 +43,7 @@ void uart_send_report(uint8_t report_type, uint8_t *report_buf, uint8_t report_s
  *
  */
 static void send_or_queue(report_buffer_t *report) {
-    if (dev_info.rf_state == RF_CONNECT && rf_queue.is_empty()) {
+    if (dev_info.rf_state == RF_CONNECT && rf_queue.is_empty() && dequeue_delay == 0) {
         uart_send_report(report->cmd, report->buffer, report->length);
     } else {
         rf_queue.enqueue(report);

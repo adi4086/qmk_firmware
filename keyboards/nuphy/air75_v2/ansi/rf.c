@@ -42,6 +42,7 @@ uint8_t  func_tab[32]        = {0};
 uint8_t  sync_lost           = 0;
 uint8_t  rf_disconnect_delay = 0;
 uint32_t uart_rpt_timer      = 0;
+uint32_t dequeue_timer       = 0;
 
 report_buffer_t byte_report_buff = {0};
 report_buffer_t bit_report_buff  = {0};
@@ -92,7 +93,8 @@ void uart_send_repeat_from_queue(void) {
     static report_buffer_t report_buff   = {0};
 
     if (timer_elapsed32(dequeue_timer) > 12 && !rf_queue.is_empty()) {
-        rf_queue.dequeue(&report_buff);
+        if (timer_elapsed32(dequeue_timer) < 20) { dequeue_delay += timer_elapsed32(dequeue_timer); }
+        if (dequeue_delay > 600) { rf_queue.dequeue(&report_buff); }
         dequeue_timer = timer_read32();
     }
 

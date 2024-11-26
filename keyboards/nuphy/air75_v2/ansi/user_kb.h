@@ -224,6 +224,7 @@ extern bool               f_goto_sleep;
 extern bool               f_goto_deepsleep;
 
 extern uint32_t           eeprom_update_timer;
+extern uint32_t           dequeue_timer;
 extern bool               rgb_update;
 extern bool               user_update;
 extern bool               flush_side_leds;
