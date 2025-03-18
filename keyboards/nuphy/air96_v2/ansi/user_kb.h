@@ -278,7 +278,6 @@ void    led_power_handle(void);
 void    set_link_mode(void);
 void    matrix_io_delay(void);
 void    game_mode_tweak(void);
-void    keep_awake(void);
 void    user_debug(void);
 void    call_update_eeprom_data(bool* eeprom_update_init);
 void    signal_rgb_led(uint8_t selected_color, uint8_t start_led, uint8_t end_led, uint16_t show_time);
