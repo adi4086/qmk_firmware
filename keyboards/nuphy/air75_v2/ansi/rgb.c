@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "user_kb.h"
 #include "ansi.h"
 #include "rgb_table.h"
-#include "ws2812_side_driver.h"
+#include "ws2812_driver.h"
 #include "mcu_pwr.h"
 
 /* side rgb mode */

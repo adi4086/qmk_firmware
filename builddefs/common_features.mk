@@ -307,7 +307,7 @@ ifeq ($(strip $(RGBLIGHT_ENABLE)), yes)
         POST_CONFIG_H += $(QUANTUM_DIR)/rgblight/rgblight_post_config.h
         OPT_DEFS += -DRGBLIGHT_ENABLE
         OPT_DEFS += -DRGBLIGHT_$(strip $(shell echo $(RGBLIGHT_DRIVER) | tr '[:lower:]' '[:upper:]'))
-        SRC += $(QUANTUM_DIR)/process_keycode/process_underglow.c
+        # SRC += $(QUANTUM_DIR)/process_keycode/process_underglow.c
         SRC += $(QUANTUM_DIR)/color.c
         SRC += $(QUANTUM_DIR)/rgblight/rgblight.c
         SRC += $(QUANTUM_DIR)/rgblight/rgblight_drivers.c
@@ -466,9 +466,9 @@ ifeq ($(strip $(RGB_MATRIX_ENABLE)), yes)
     POST_CONFIG_H += $(QUANTUM_DIR)/rgb_matrix/post_config.h
 
     # TODO: Remove this
-    SRC += $(QUANTUM_DIR)/process_keycode/process_underglow.c
+    # SRC += $(QUANTUM_DIR)/process_keycode/process_underglow.c
 
-    SRC += $(QUANTUM_DIR)/process_keycode/process_rgb_matrix.c
+    # SRC += $(QUANTUM_DIR)/process_keycode/process_rgb_matrix.c
     SRC += $(QUANTUM_DIR)/color.c
     SRC += $(QUANTUM_DIR)/rgb_matrix/rgb_matrix.c
     SRC += $(QUANTUM_DIR)/rgb_matrix/rgb_matrix_drivers.c

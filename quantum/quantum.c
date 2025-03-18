@@ -59,7 +59,7 @@
 #ifdef PROGRAMMABLE_BUTTON_ENABLE
 #    include "process_programmable_button.h"
 #endif
-
+/*
 #if defined(RGB_MATRIX_ENABLE)
 #    include "process_rgb_matrix.h"
 #endif
@@ -67,7 +67,7 @@
 #if defined(RGBLIGHT_ENABLE) || defined(RGB_MATRIX_ENABLE)
 #    include "process_underglow.h"
 #endif
-
+*/
 #ifdef SECURE_ENABLE
 #    include "process_secure.h"
 #endif
@@ -390,12 +390,14 @@ bool process_record_quantum(keyrecord_t *record) {
 #ifdef GRAVE_ESC_ENABLE
             process_grave_esc(keycode, record) &&
 #endif
+/*
 #if defined(RGBLIGHT_ENABLE) || defined(RGB_MATRIX_ENABLE)
             process_underglow(keycode, record) &&
 #endif
 #if defined(RGB_MATRIX_ENABLE)
             process_rgb_matrix(keycode, record) &&
 #endif
+*/
 #ifdef JOYSTICK_ENABLE
             process_joystick(keycode, record) &&
 #endif
