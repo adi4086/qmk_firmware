@@ -35,15 +35,21 @@ bool game_mode_enable    = 0;
 bool f_send_channel      = 0;
 bool f_dial_sw_init_ok   = 0;
 bool f_bat_num_show      = 0;
+bool rgb_power_save      = 0;
 
 uint8_t        rgb_required            = 0;
 uint8_t        rf_blink_cnt            = 0;
 uint8_t        rf_sw_temp              = 0;
 uint8_t        host_mode               = 0;
+uint8_t        rgb_interval            = 0;
+uint8_t        delay_step_timer        = 0;
+uint8_t        long_press_timer        = 0;
+uint16_t       side_one_timer          = 0;
 uint16_t       rf_linking_time         = 0;
 uint16_t       rf_link_show_time       = 0;
 uint32_t       no_act_time             = 0;
 uint16_t       f_rf_sw_press           = 0;
+uint16_t       f_rf_dfu_press          = 0;
 uint16_t       f_rgb_test_press        = 0;
 uint16_t       f_dev_reset_press       = 0;
 uint16_t       f_caps_word_tg          = 0;
@@ -105,24 +111,9 @@ void set_link_mode(void) {
 /**
  * @brief  long press key process.
  */
-void custom_key_press(void) {
-    static uint32_t long_press_timer = 0;
-
-    // SnapTap function
-    /*
-    if (timer_elapsed32(long_press_timer) % 10 == 0) {
-
-        if (left_pressed) {
-            left_pressed++;
-        }
-
-        if (right_pressed) {
-            right_pressed++;
-        }
-    }
-    */
-    if (timer_elapsed32(long_press_timer) < 100) { return; }
-    long_press_timer = timer_read32();
+void user_key_press(void) {
+    if (long_press_timer < 10) { return; }
+    long_press_timer = 0;
 
     dial_sw_scan();
 
@@ -173,15 +164,6 @@ void custom_key_press(void) {
             dev_info.sys_sw_state = 0;
             dial_sw_fast_scan();
 
-            /* dial_sw_fast_scan() is more efficient
-            if (dev_info.sys_sw_state == SYS_SW_MAC) {
-                default_layer_set(1 << 0);
-                keymap_config.nkro = 0;
-            } else {
-                default_layer_set(1 << 2);
-                keymap_config.nkro = 1;
-            }
-            */
         }
     }
 
@@ -218,6 +200,8 @@ void custom_key_press(void) {
     if (left_pressed)  {  left_pressed++; }
     if (right_pressed) { right_pressed++; }
 
+    // Toggle Caps Word
+
     if (f_caps_word_tg) {
         f_caps_word_tg++;
         if (f_caps_word_tg > SMALL_PRESS_DELAY) {
@@ -226,8 +210,20 @@ void custom_key_press(void) {
 #ifndef NO_DEBUG
             dprintf("caps_word_state: %s\n", user_config.caps_word_enable ? "ON" : "OFF");
 #endif
-            // signal_rgb_led(user_config.caps_word_enable, CAPS_LED, CAPS_LED, CAPS_WORD_IDLE_TIMEOUT);
-            signal_rgb_led(user_config.caps_word_enable, 1, led_idx.KC_CAPS, UINT8_MAX, CAPS_WORD_IDLE_TIMEOUT);
+            signal_rgb_led(user_config.caps_word_enable * 3, led_idx.KC_CAPS, UINT8_MAX, CAPS_WORD_IDLE_TIMEOUT);
+        }
+    }
+
+    // Toggle RF Delay
+    if (f_rf_dfu_press) {
+        f_rf_dfu_press++;
+        if (f_rf_dfu_press > MEDIUM_PRESS_DELAY) {
+            f_rf_dfu_press = 0;
+#ifndef NO_DEBUG
+            dprintf("RF DFU Mode Enabled\n");
+#endif
+            uart_send_cmd(CMD_RF_DFU, 10, 20);
+            signal_rgb_led(9, led_idx.RF_DFU, UINT8_MAX, UINT16_MAX);
         }
     }
 
@@ -334,7 +330,7 @@ void dial_sw_scan(void) {
         f_wakeup_prepare = 0;
 
         dial_save         = dial_scan;
-        debounce          = 5;
+        debounce          = 10;
         f_dial_sw_init_ok = 0;
         return;
     } else if (debounce) {
@@ -381,13 +377,6 @@ uint8_t get_array_idx(uint8_t *array, uint8_t size, uint16_t elm) {
     return UINT8_MAX;
 }
 
-/*
-void extra_sleep(void) {
-    if (game_mode_enable) { return; }
-    if (no_act_time > 3000) {  wait_ms(8); }
-}
-*/
-
 /**
  * @brief  timer process.
  */
@@ -422,8 +411,15 @@ void timer_pro(void) {
 
     if (rf_linking_time < UINT16_MAX) { rf_linking_time += adjust_time + 1; }
 
+    if (rgb_interval < UINT8_MAX) { rgb_interval++; }
+
+    if (delay_step_timer < UINT8_MAX) { delay_step_timer++; }
+
+    if (long_press_timer < UINT8_MAX) { long_press_timer++; }
+
+    if (side_one_timer < UINT16_MAX) { side_one_timer += adjust_time + 1; }
+
     adjust_time = 0;
-    // extra_sleep();
 }
 
 /**
@@ -434,7 +430,6 @@ void load_eeprom_data(void) {
     if (user_config.init_layer < 100) { user_config_reset(); }
 }
 
-//typedef void    (*rgb_func_pointer)(void)
 void call_update_eeprom_data(bool* eeprom_update_init) {
     *eeprom_update_init = 1;
     eeprom_update_timer = 0;
@@ -525,7 +520,7 @@ void game_mode_tweak(void)
 #endif
 
     pwr_led_on();
-    signal_rgb_led(game_mode_enable, 1, led_idx.KC_G, UINT8_MAX, 2000);
+    signal_rgb_led(game_mode_enable * 3, led_idx.KC_G, UINT8_MAX, 2000);
 }
 
 void reset_led_idx(void) {
@@ -594,46 +589,44 @@ uint8_t step_helper(uint8_t dir, uint8_t value) {
         end_led  = 9;
     }
 
-    signal_rgb_led(my_color, 0, led_idx.KC_F1, led_idx.KC_F1 + end_led, 3000);
+    signal_rgb_led(my_color, led_idx.KC_F1, led_idx.KC_F1 + end_led, 3000);
     return value;
 }
 
 void debounce_type(void) {
-    if (user_config.debounce_type == 2) { user_config.debounce_type = 0; }
-    else { user_config.debounce_type++; }
+    user_config.debounce_type = (user_config.debounce_type + 1) % 3;
 
 #ifndef NO_DEBUG
     dprintf("debounce type: %s\n", debounce_algo[user_config.debounce_type]);
 #endif
-    signal_rgb_led(user_config.debounce_type == 1 ? 3 : user_config.debounce_type, 0, led_idx.KC_D, UINT8_MAX, 3000);
+    signal_rgb_led(user_config.debounce_type == 1 ? 3 : user_config.debounce_type, led_idx.KC_D, UINT8_MAX, 3000);
 }
 
 #ifndef NO_DEBUG
 void user_debug(void) {
     static uint32_t last_print = 0;
-    if (no_act_time == 0 || no_act_time == last_print) { return; }
-    if (no_act_time % 3000 == 0) {
-        if (!USB_ACTIVE && debug_enable) {
-            debug_enable = false;
-            print("DEBUG: disabled.\n");
-        }
-
-        last_print = no_act_time;
-        dprintf("no_act_time: %lds\n", no_act_time / 100);
+    if (no_act_time == 0 || no_act_time == last_print || no_act_time % 3000 != 0) { return; }
+    if (!USB_ACTIVE && debug_enable) {
+        debug_enable = false;
+        print("DEBUG: disabled.\n");
     }
+
+    last_print = no_act_time;
+    dprintf("no_act_time: %lds\n", no_act_time / 100);
 }
 #endif
 
+
+// or create week functios for user_config reset and game_config reset
 /**
  * @brief User config to default setting.
  */
 void user_config_reset(void) {
     /* first power on, set rgb matrix brightness at middle level*/
-    // rgb_matrix_sethsv(RGB_HUE_INIT, 255, RGB_MATRIX_MAXIMUM_BRIGHTNESS - RGB_MATRIX_VAL_STEP * 2);
 
-    user_config.init_layer              = 100;
+    user_config.init_layer              = 100 + DEFAULT_LAYER;
     user_config.ee_side_mode            = 0;
-    user_config.ee_side_light           = 1;
+    user_config.ee_side_light           = 1; 
     user_config.ee_side_speed           = 2;
     user_config.ee_side_rgb             = 1;
     user_config.ee_side_colour          = 0;
@@ -646,9 +639,10 @@ void user_config_reset(void) {
     user_config.caps_word_enable        = 1;
     user_config.numlock_state           = 1;
     user_config.socd_mode               = 0;
+    user_config.rf_delay_step           = 2;
     keymap_config.no_gui                = 0;
-    game_config_reset(0);
     user_config_override();
+    game_config_reset(0);
     eeconfig_update_kb_datablock(&user_config);
 }
 
@@ -671,39 +665,46 @@ void game_config_reset(uint8_t save_to_eeprom) {
  * @note Turn off LEDs if not used to save some power. This is ported
  *       from older Nuphy leaks.
  */
+void power_save(void) {
+    static uint16_t power_check_timer      = 0;
+    if (timer_elapsed32(power_check_timer) < 5000) { return; }
 
-void matrix_io_delay(void) {
-    if (MATRIX_IO_DELAY == 0 || game_mode_enable == 1 || f_rf_sleep) {
-        __asm__ __volatile__("nop;nop;nop;nop;nop;nop;nop;nop;\n\t" ::: "memory");  // sleep 0.415 us (415 ns)
-        return;
+    if (dev_info.rf_battery > low_bat_level && rgb_power_save == 1) {
+        if (game_mode_enable) {
+            rgb_matrix_config.hsv.v = user_config.game_rgb_val;
+            user_config.ee_side_light = user_config.game_side_light;
+        } else {
+            rgb_matrix_reload_from_eeprom();
+            eeconfig_read_kb_datablock(&user_config);
+        }
+        rgb_power_save = 0;
+    } else if ((rgb_matrix_config.hsv.v > 0 || user_config.ee_side_light > 1) && dev_info.rf_battery < low_bat_level) {
+        rgb_matrix_config.hsv.v   = 0;
+        user_config.ee_side_light = 1;
+        rgb_power_save            = 1;
     }
-    uint16_t io_wait = MATRIX_IO_DELAY;
-    if (no_act_time > 3000) { io_wait += 200; }
-    wait_us(io_wait);
 }
 
 void led_power_handle(void) {
-    static uint32_t interval    = 0;
     static uint8_t led_debounce = 4;
 
-    uint16_t led_interval = rgb_required == 1 ? 100 : 500;
+    uint16_t led_interval = rgb_required == 1 ? 10 : 50;
 
-    if (timer_elapsed32(interval) < led_interval || f_wakeup_prepare || game_mode_enable) {
+    if (rgb_interval < led_interval || f_wakeup_prepare || game_mode_enable) {
         return;
     }
 
-    // interval = timer_read32();
 
-    if (rgb_matrix_is_enabled() && (rgb_matrix_get_val() != 0 || !is_side_rgb_off() || rgb_required > 0)) { 
+    if (rgb_matrix_is_enabled() && (rgb_matrix_get_val() != 0 || !is_side_is31fl3733_off() || rgb_required > 0)) { 
         rgb_required = 0;
         led_debounce = 4;
         pwr_led_on();
     } else if (led_debounce--) {
-        interval = timer_read32();
+        rgb_interval = 0;
         return;
-    } else if (timer_elapsed32(interval) > 500) { // brightness is 0 or RGB off.
+    } else if (rgb_interval > 50) { // brightness is 0 or RGB off.
         pwr_led_off();
     }
 
-    interval = timer_read32();
+    rgb_interval = 0;
 }

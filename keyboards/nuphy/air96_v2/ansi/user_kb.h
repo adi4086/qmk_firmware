@@ -101,7 +101,7 @@ typedef enum {
 #define HOST_BLE_TYPE             1
 #define HOST_RF_TYPE              2
 
-#define RF_POWER_DOWN_DELAY       (30)
+#define RF_POWER_DOWN_DELAY       (dev_info.link_mode == LINK_RF_24 ? 5 : 30)
 
 #define MICRO_PRESS_DELAY         5
 #define SMALL_PRESS_DELAY         10
@@ -113,21 +113,16 @@ typedef enum {
 
 #define RGB_MATRIX_GAME_MODE      RGB_MATRIX_GRADIENT_LEFT_RIGHT
 #define SIDE_MATRIX_GAME_MODE     4
-#define SOCD_KEYS                 KC_A, KC_D, KC_LEFT, KC_RIGHT
+#define SOCD_KEYS                 KC_A, KC_D, KC_LEFT, KC_RIGHT, KC_UP, KC_DOWN
 
-// #define    CAPS_LED               55
-// #define    LSHIFT_LED             71
-// #define    F1_LED                 1
-// #define    F2_LED                 2
-// #define    F12_LED                12
-// #define    WIN_LED                89
-// #define    NUMLOCK_LED            33
-// #define    G_LED                  60
+// default user config
+#define DEFAULT_LAYER             0
 
 #ifndef DEBOUNCE
 #    define DEBOUNCE 5
 #endif
 
+#define NOP_WAIT                  __asm__ __volatile__("nop;nop;nop;nop;nop;nop;nop;nop;\n\t" ::: "memory")  // sleep 0.125 us (125 ns)
 #define sizeof_array(x)           (sizeof(x)/sizeof(*(x)))
 #define USB_ACTIVE                ((dev_info.link_mode == LINK_USB && USB_DRIVER.state != USB_SUSPENDED) || (dev_info.link_mode != LINK_USB && dev_info.rf_charge == 0x03))
 
@@ -180,6 +175,7 @@ typedef struct
     uint8_t game_debounce_ms;
     uint8_t game_debounce_type;
     uint8_t socd_mode;
+    uint8_t rf_delay_step;
     uint8_t retain1;
     uint8_t retain2;
 } user_config_t;
@@ -213,6 +209,7 @@ extern bool               game_mode_enable;
 extern uint32_t           sys_show_timer;
 extern uint32_t           sleep_show_timer;
 extern uint16_t           f_rf_sw_press;
+extern uint16_t           f_rf_dfu_press;
 extern uint16_t           f_dev_reset_press;
 extern uint16_t           f_rgb_test_press;
 extern uint16_t           f_caps_word_tg;
@@ -235,14 +232,19 @@ extern bool               f_goto_sleep;
 extern bool               f_goto_deepsleep;
 
 extern uint32_t           eeprom_update_timer;
-extern uint32_t           dequeue_delay;
 extern bool               rgb_update;
 extern bool               user_update;
 extern uint8_t            rgb_required;
+extern uint8_t            low_bat_level;
+extern bool               rgb_power_save;
+extern uint16_t           left_pressed;
 extern uint16_t           left_pressed;
 extern uint16_t           right_pressed;
+extern uint32_t           dequeue_delay;
+extern uint8_t            delay_step_timer;
+extern uint16_t           side_one_timer;
 
-extern bool               is_side_rgb_off(void);
+extern bool               is_side_is31fl3733_off(void);
 extern void               user_config_override(void);
 extern void               game_config_override(void);
 
@@ -252,18 +254,18 @@ void    rf_device_init(void);
 void    uart_send_report_repeat(void);
 void    uart_receive_pro(void);
 void    uart_send_report(uint8_t report_type, uint8_t *report_buf, uint8_t report_size);
-void    signal_sleep(uint8_t r, uint8_t g, uint8_t b);
+void    signal_sleep(void);
 void    side_speed_control(uint8_t dir);
 void    side_light_control(uint8_t dir);
 void    side_colour_control(uint8_t dir);
 void    side_mode_control(uint8_t dir);
-void    side_one_control(uint8_t dir);
+void    side_one_control(void);
 void    led_show(void);
 void    sleep_handle(void);
 void    bat_num_led(void);
 void    rgb_test_show(void);
 void    gpio_init(void);
-void    custom_key_press(void);
+void    user_key_press(void);
 void    break_all_key(void);
 void    switch_dev_link(uint8_t mode);
 void    dial_sw_scan(void);
@@ -276,13 +278,16 @@ void    led_power_handle(void);
 void    set_link_mode(void);
 void    matrix_io_delay(void);
 void    game_mode_tweak(void);
+void    keep_awake(void);
 void    user_debug(void);
 void    call_update_eeprom_data(bool* eeprom_update_init);
-void    signal_rgb_led(uint8_t color, uint8_t bin_type, uint8_t start_led, uint8_t end_led, uint16_t show_time);
+void    signal_rgb_led(uint8_t selected_color, uint8_t start_led, uint8_t end_led, uint16_t show_time);
 void    reset_led_idx(void);
 void    game_config_reset(uint8_t save_to_eeprom);
 void    rgb_matrix_step_game_mode(uint8_t step);
 void    debounce_type(void);
+void    power_save(void);
+void    clear_rgb(void);
 uint8_t step_helper(uint8_t dir, uint8_t value);
 uint8_t get_led_idx(uint16_t keycode);
 uint8_t get_array_idx(uint8_t *array, uint8_t size, uint16_t elm);

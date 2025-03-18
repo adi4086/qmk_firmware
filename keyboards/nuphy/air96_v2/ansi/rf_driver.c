@@ -131,6 +131,7 @@ static uint8_t rf_keyboard_leds(void) {
 }
 
 static void rf_send_keyboard(report_keyboard_t *report) {
+    clear_report_buffer();
     report->reserved    = 0;
     report_buffer_t rpt = make_report_buffer(CMD_RPT_BYTE_KB, &report->mods, 8);
     send_or_queue(&rpt);
@@ -144,11 +145,13 @@ static void rf_send_nkro(report_nkro_t *report) {
 }
 
 static void rf_send_mouse(report_mouse_t *report) {
+    clear_report_buffer();
     report_buffer_t rpt = make_report_buffer(CMD_RPT_MS, &report->buttons, 5);
     send_or_queue(&rpt);
 }
 
 static void rf_send_extra(report_extra_t *report) {
+    clear_report_buffer();
     uint8_t cmd_rpt = report->report_id == REPORT_ID_CONSUMER ? CMD_RPT_CONSUME : CMD_RPT_SYS;
     report_buffer_t rpt = make_report_buffer(cmd_rpt, (uint8_t *)(&report->usage), 2);
     send_or_queue(&rpt);

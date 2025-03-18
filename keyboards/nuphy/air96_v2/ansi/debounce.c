@@ -33,17 +33,16 @@ static void update_debounce_counters_and_transfer_if_expired(matrix_row_t raw[],
 static void update_debounce_counters(uint8_t num_rows, uint8_t elapsed_time);
 static void transfer_matrix_values(matrix_row_t raw[], matrix_row_t cooked[], uint8_t num_rows);
 
-void early_user_debouce_init(void) {
-    if (user_config.init_layer < 100) {
-        user_config.debounce_type = 1;
-        user_config.debounce_ms = DEBOUNCE;
-    }
+void early_user_debounce_init(void) {
+    if (user_config.debounce_ms != 0) { return; }
+    user_config.debounce_type = 1;
+    user_config.debounce_ms = DEBOUNCE;
 }
 
 // we use num_rows rather than MATRIX_ROWS to support split keyboards
 void debounce_init(uint8_t num_rows) {
     uint8_t max_counters = num_rows * MATRIX_COLS;
-    early_user_debouce_init();
+    early_user_debounce_init();
 
     debounce_counters = malloc(max_counters * sizeof(debounce_counter_t));
 

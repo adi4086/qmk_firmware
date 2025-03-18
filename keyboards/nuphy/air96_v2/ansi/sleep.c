@@ -23,9 +23,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "rf_queue.h"
 
 void deep_sleep_handle(void) {
-    signal_sleep(0x00, dev_info.link_mode == LINK_RF_24 ? 0x80 : 0x00, dev_info.link_mode == LINK_RF_24 ? 0x00 : 0x80);
     // Sync again before sleeping
     dev_sts_sync();
+
+    // Setting Parameters
+    f_goto_deepsleep   = 0;
+    f_goto_sleep       = 0;
+    f_wakeup_prepare   = 1;
+    f_rf_sleep         = 1;
+
+    // Signal sleep
+    signal_sleep();
+
     enter_deep_sleep(); // puts the board in WFI mode and pauses the MCU
     exit_deep_sleep();  // This gets called when there is an interrupt (wake) event.
 }
@@ -34,35 +43,29 @@ void deep_sleep_handle(void) {
  * @brief  Sleep Handle.
  */
 void sleep_handle(void) {
-    static uint32_t delay_step_timer = 0;
     static uint8_t  usb_suspend_debounce = 0;
     static uint32_t rf_disconnect_time = 0;
 
     if (user_config.sleep_mode == 0 || USB_ACTIVE) { return; }
-    if (timer_elapsed32(delay_step_timer) > (60 * 1000)) { no_act_time = 0; }
+    if (delay_step_timer > 100) { no_act_time = 0; }
 
-    /* 500ms interval */
-    if (timer_elapsed32(delay_step_timer) < 500) { return; }
-        delay_step_timer = timer_read32();
+    if (delay_step_timer < 50) { return; }
+    delay_step_timer = 0;
 
-    if (user_config.sleep_mode != 1 || f_rf_sleep) {
+    if (user_config.sleep_mode != 1 || f_rf_sleep) {   
         f_goto_deepsleep = 0;
     } else if (no_act_time >= (user_config.light_sleep + DEEP_SLEEP_TIME) * T_MIN) {
         f_goto_deepsleep = 1;
     }
 
     if (f_goto_deepsleep != 0) {
-        f_goto_deepsleep   = 0;
-        f_goto_sleep       = 0;
-        f_wakeup_prepare   = 1;
-        f_rf_sleep         = 1;
         deep_sleep_handle();
         return;
     }
 
     // sleep process
     if (f_goto_sleep) {
-        f_goto_sleep       = 0;
+        f_goto_sleep     = 0;
         enter_light_sleep();
         f_wakeup_prepare = 1;
     }
@@ -75,13 +78,13 @@ void sleep_handle(void) {
     if (dev_info.link_mode == LINK_USB) {
         if (USB_DRIVER.state == USB_SUSPENDED) {
             usb_suspend_debounce++;
-            if (usb_suspend_debounce >= 2) {
+            if (usb_suspend_debounce >= 10) {
                 f_goto_sleep = 1;
             }
         } else {
             usb_suspend_debounce = 0;
         }
-    } else if (no_act_time >= (user_config.light_sleep * T_MIN)) {
+    } else if  (no_act_time >= (user_config.light_sleep * T_MIN)) {
         f_goto_sleep     = 1;
     } else if (rf_linking_time >= (dev_info.link_mode == LINK_RF_24 ? (link_timeout / 4) : link_timeout)) {
         f_goto_deepsleep = 1;
@@ -89,7 +92,7 @@ void sleep_handle(void) {
         rf_linking_time  = 0;
     } else if (dev_info.rf_state == RF_DISCONNECT) {
             rf_disconnect_time++;
-        if (rf_disconnect_time > 10 * 2) {
+        if (rf_disconnect_time > 10 * 4) {
             f_goto_deepsleep   = 1;
             f_goto_sleep       = 1;
             rf_disconnect_time = 0;

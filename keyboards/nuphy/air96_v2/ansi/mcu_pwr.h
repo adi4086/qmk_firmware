@@ -126,3 +126,6 @@ void clear_report_buffer(void);
 
 void mcu_timer6_init(void);
 void idle_enter_sleep(void);
+
+void interrupt_source_init(void);
+
