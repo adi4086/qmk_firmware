@@ -58,7 +58,7 @@ The following customizations were applied on top of the stock firmware.
 
 -  FN + M + ESC => will reboot keyboard. If you do not unpress the ESC key, it will enter bootmode so you can load new firmware.
 
--  FN + M + F2 => Will enter DFU mode so you can upload new RF firmware. The key will remain lit up as red until you reboot the keyboard. This mode is activated only when keyboard is connected to laptop/computer via USB
+-  FN + M + F2 => Long press will enter DFU mode so you can upload new RF firmware. The key will remain lit up as red until you reboot the keyboard. This mode is activated only when keyboard is connected to laptop/computer via USB. Short press will change the delay after keyboard wakeup (from 80 ms - 880 ms in 200 ms increments). 80ms recommended for RF 1.x, 480ms recommended for RF 2.x.
 
 -  All QMK animations are now included in this firmware
 

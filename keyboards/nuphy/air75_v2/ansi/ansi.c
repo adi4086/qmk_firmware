@@ -17,13 +17,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "user_kb.h"
 #include "ansi.h"
+#include "redefine.h"
 #include "mcu_pwr.h"
 #include "version.h"
 
-char            socd_type[4][14]  = { "disabled", "cancellation", "exclusion", "nullification" };
+char            socd_type[4][14] = { "disabled", "cancellation", "exclusion", "nullification" };
 
 /* qmk pre-process record */
-
 bool pre_process_record_kb(uint16_t keycode, keyrecord_t *record) {
     no_act_time      = 0;
     rf_linking_time  = 0;
@@ -81,6 +81,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         case DEBOUNCE_D:
         case DEBOUNCE_T:
         case SOCD_TOG:
+        case RF_DFU:
             call_update_eeprom_data(&user_update);
             return true;
 
@@ -106,19 +107,19 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             if (game_mode_enable) { return false; }
             return true;
 
-        case RGB_TOG:
+        case QK_RGB_MATRIX_TOGGLE:
             if (game_mode_enable) { return true; }
             call_update_eeprom_data(&rgb_update);
             return true;
 
-        case RGB_VAI:
-        case RGB_VAD:
-        case RGB_SAI:
-        case RGB_SAD:
-        case RGB_HUI:
-        case RGB_HUD:
-        case RGB_MOD:
-        case RGB_RMOD:
+        case QK_RGB_MATRIX_VALUE_UP:
+        case QK_RGB_MATRIX_VALUE_DOWN:
+        case QK_RGB_MATRIX_SATURATION_UP:
+        case QK_RGB_MATRIX_SATURATION_DOWN:
+        case QK_RGB_MATRIX_HUE_UP:
+        case QK_RGB_MATRIX_HUE_DOWN:
+        case QK_RGB_MATRIX_MODE_NEXT:
+        case QK_RGB_MATRIX_MODE_PREVIOUS:
             if (game_mode_enable) {
                 call_update_eeprom_data(&user_update);
                 return true;
@@ -126,9 +127,8 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             call_update_eeprom_data(&rgb_update);
             return true;
 
-        case RGB_SPI:
-        case RGB_SPD:
-        case RGB_M_P:
+        case QK_RGB_MATRIX_SPEED_UP:
+        case QK_RGB_MATRIX_SPEED_DOWN:
             if (game_mode_enable) { return false; }
             call_update_eeprom_data(&rgb_update);
             return true;
@@ -151,10 +151,18 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
 
     switch (keycode) {
         case RF_DFU:
+            if (game_mode_enable) { return false; }
             if (record->event.pressed) {
-                if (dev_info.link_mode != LINK_USB) { return false; }
-                uart_send_cmd(CMD_RF_DFU, 10, 20);
-                signal_rgb_led(0, 1, led_idx.RF_DFU, UINT8_MAX, UINT16_MAX);
+                f_rf_dfu_press = 1;
+            } else {
+                if (f_rf_dfu_press) {
+                    f_rf_dfu_press = 0;
+                    user_config.rf_delay_step = (user_config.rf_delay_step + 1) % 5;
+#ifndef NO_DEBUG
+                    dprintf("rf_delay: %d\n", user_config.rf_delay_step * 200 + 80);
+#endif
+                    signal_rgb_led(user_config.rf_delay_step * 2, led_idx.RF_DFU, UINT8_MAX, 3000);
+                }
             }
             return false;
 
@@ -179,51 +187,12 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
                     set_link_mode();
                     uart_send_cmd(CMD_SET_LINK, 10, 20);
                 }
-            }
-            return false;
-
-        case DEV_RESET:
-            if (record->event.pressed) {
-                f_dev_reset_press = 1;
-                break_all_key();
-            } else {
-                f_dev_reset_press = 0;
-            }
-            return false;
-
-        case GAME_MODE:
-            if (record->event.pressed) {
-                f_gmode_reset_press = 1;
-            } else {
-                if (f_gmode_reset_press) {
-                    f_gmode_reset_press = 0;
-                    game_mode_enable = !game_mode_enable;
-                    game_mode_tweak();
+                for (uint8_t i = 1; i <= 4; i++) {
+                    rgb_matrix_set_color(led_idx.KC_GRV - i, RGB_OFF);
                 }
+                rgb_matrix_update_pwm_buffers();
             }
             return false;
-
-        case CAPS_WORD:
-            f_caps_word_tg = record->event.pressed;
-            return false;
-
-
-        case KC_LGUI:
-        case WIN_LOCK:
-            if (record->event.pressed) {
-                if (get_highest_layer(layer_state) == M_LAYER || keycode == WIN_LOCK) {
-                    keymap_config.no_gui = !keymap_config.no_gui;
-                    signal_rgb_led(!keymap_config.no_gui, 1, led_idx.KC_LGUI, UINT8_MAX, 3000);
-                    return false;
-                }
-            }
-            return true;
-
-        case KC_LSFT:
-            if (!record->event.pressed) {
-                if ((!user_config.caps_word_enable || game_mode_enable) && is_caps_word_on()) { caps_word_off(); }
-            }
-            return true;
 
         case MAC_VOICE:
             if (record->event.pressed) {
@@ -239,8 +208,10 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
 
         case MAC_DND:
             if (record->event.pressed) {
-                host_system_send(0x9b);
-            } else {
+                if (dev_info.sys_sw_state == SYS_SW_MAC) {
+                    host_system_send(0x9b);
+                }
+            } else if (dev_info.sys_sw_state == SYS_SW_MAC) {
                 host_system_send(0);
             }
             return false;
@@ -306,10 +277,10 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
             }
             return false;
 
-        case SIDE_VAI:
         case SIDE_VAD:
+        case SIDE_VAI:
             if (record->event.pressed) {
-                uint8_t dir = keycode == SIDE_VAD ? 0 : 1;
+                uint8_t dir = keycode % SIDE_VAD;
                 side_light_control(dir);
             }
             return false;
@@ -326,111 +297,26 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
             }
             return false;
 
-        case SIDE_SPI:
         case SIDE_SPD:
+        case SIDE_SPI:
             if (record->event.pressed) {
-                uint8_t dir = keycode == SIDE_SPD ? 0 : 1;
+                uint8_t dir = keycode % SIDE_SPD;
                 side_speed_control(dir);
             }
             return false;
 
         case SIDE_1:
             if (record->event.pressed) {
-                side_one_control(1);
+                side_one_control();
             }
             return false;
 
-        case RGB_VAI:
+        case DEV_RESET:
             if (record->event.pressed) {
-                rgb_matrix_increase_val_noeeprom();
-            }
-            return false;
-
-        case RGB_VAD:
-            if (record->event.pressed) {
-                rgb_matrix_decrease_val_noeeprom();
-            }
-            return false;
-
-        case RGB_MOD:
-            if (record->event.pressed) {
-                if (game_mode_enable) {
-                    rgb_matrix_step_game_mode(1);
-                    return false;
-                }
-                rgb_matrix_step_noeeprom();
-            }
-            return false;
-
-        case RGB_RMOD:
-            if (record->event.pressed) {
-                if (game_mode_enable) {
-                    rgb_matrix_step_game_mode(0);
-                    return false;
-                }
-                rgb_matrix_step_reverse_noeeprom();
-            }
-            return false;
-
-        case RGB_HUI:
-            if (record->event.pressed) {
-                rgb_matrix_increase_hue_noeeprom();
-            }
-            return false;
-
-        case RGB_HUD:
-            if (record->event.pressed) {
-                rgb_matrix_decrease_hue_noeeprom();
-            }
-            return false;
-
-        case RGB_SPI:
-            if (record->event.pressed) {
-                rgb_matrix_increase_speed_noeeprom();
-            }
-            return false;
-
-        case RGB_SPD:
-            if (record->event.pressed) {
-                rgb_matrix_decrease_speed_noeeprom();
-            }
-            return false;
-
-        case RGB_SAI:
-            if (record->event.pressed) {
-                rgb_matrix_increase_sat_noeeprom();
-            }
-            return false;
-
-       case RGB_SAD:
-            if (record->event.pressed) {
-                rgb_matrix_decrease_sat_noeeprom();
-            }
-            return false;
-
-       case RGB_M_P:
-            if (record->event.pressed) {
-                rgb_matrix_mode_noeeprom(RGB_MATRIX_SOLID_COLOR);
-            }
-            return false;
-
-       case RGB_TOG:
-            if (record->event.pressed) {
-                rgb_matrix_toggle_noeeprom();
-            }
-            return false;
-
-        case SLEEP_MODE:
-            if (record->event.pressed) {
-                user_config.sleep_mode = (user_config.sleep_mode + 1) % 3;
-                link_timeout           = user_config.sleep_mode == 1 ? (T_MIN * 1) : (T_MIN * 2);
-                if (user_config.sleep_mode > 0) {
-                    uint8_t temp_sleep = user_config.light_sleep;
-                    user_config.light_sleep = user_config.alt_light_sleep;
-                    user_config.alt_light_sleep = temp_sleep;
-                }
-
-                sleep_show_timer = timer_read32();
+                f_dev_reset_press = 1;
+                break_all_key();
+            } else {
+                f_dev_reset_press = 0;
             }
             return false;
 
@@ -442,6 +328,13 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
 
         case BAT_NUM:
             f_bat_num_show = record->event.pressed;
+            if (!f_bat_num_show) {
+                for (uint8_t i = 1; i < 11; i++) {
+                    rgb_matrix_set_color(led_idx.KC_GRV - i, RGB_OFF);
+                }
+                rgb_matrix_update_pwm_buffers();
+            }
+
             return false;
 
         case RGB_TEST:
@@ -463,8 +356,42 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
 
         case NUMLOCK_IND:
             if (record->event.pressed) {
-                if (user_config.numlock_state < 2 - game_mode_enable) { user_config.numlock_state++; }
-                else { user_config.numlock_state = 0; }
+                user_config.numlock_state = (user_config.numlock_state + 1) % (3 - game_mode_enable);
+            }
+            return false;
+
+        case CAPS_WORD:
+            f_caps_word_tg = record->event.pressed;
+            return false;
+
+        case KC_LGUI:
+        case WIN_LOCK:
+            if (record->event.pressed) {
+                if (get_highest_layer(layer_state) == M_LAYER || keycode == WIN_LOCK) {
+                    keymap_config.no_gui = !keymap_config.no_gui;
+                    signal_rgb_led(!keymap_config.no_gui * 3, led_idx.KC_LGUI, UINT8_MAX, 3000);
+                    return false;
+                }
+            }
+            return true;
+
+        case KC_LSFT:
+            if (!record->event.pressed) {
+                if ((!user_config.caps_word_enable || game_mode_enable) && is_caps_word_on()) { caps_word_off(); }
+            }
+            return true;
+
+        case SLEEP_MODE:
+            if (record->event.pressed) {
+                user_config.sleep_mode = (user_config.sleep_mode + 1) % 3;
+                link_timeout           = user_config.sleep_mode == 1 ? (T_MIN * 1) : (T_MIN * 2);
+                if (user_config.sleep_mode > 0) {
+                    uint8_t temp_sleep = user_config.light_sleep;
+                    user_config.light_sleep = user_config.alt_light_sleep;
+                    user_config.alt_light_sleep = temp_sleep;
+                }
+
+                sleep_show_timer = timer_read32();
             }
             return false;
 
@@ -475,18 +402,30 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
             } else {
                 if (user_config.sleep_mode == 0) { return true; }
                 else {
-                    f_goto_sleep = 1;
-                    f_goto_deepsleep  = 1;
+                    f_goto_sleep     = 1;
+                    f_goto_deepsleep = 1;
+                    no_act_time      = 100;
+                    break_all_key();
                 }
             }
-
             return false;
 
+        case SLEEP_D:
+        case SLEEP_I:
+            if (user_config.sleep_mode == 0) { return true; }
+            if (record->event.pressed) {
+                uint8_t dir = keycode % SLEEP_D;
+                user_config.light_sleep  = step_helper(dir, user_config.light_sleep);
+#ifndef NO_DEBUG
+                dprintf("light sleep time:    %dmin\n", user_config.light_sleep);
+#endif
+            }
+            return false;
 
         case DEBOUNCE_D:
         case DEBOUNCE_I:
             if (record->event.pressed) {
-                uint8_t dir = keycode == DEBOUNCE_D ? 0 : 1;
+                uint8_t dir = keycode % DEBOUNCE_D;
                 user_config.debounce_ms = step_helper(dir, user_config.debounce_ms);
 #ifndef NO_DEBUG
                 dprintf("debounce:      %dms\n", user_config.debounce_ms);
@@ -500,15 +439,15 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
             }
             return false;
 
-        case SLEEP_D:
-        case SLEEP_I:
-            if (user_config.sleep_mode == 0) { return true; }
+        case GAME_MODE:
             if (record->event.pressed) {
-                uint8_t dir = keycode == SLEEP_D ? 0 : 1;
-                user_config.light_sleep  = step_helper(dir, user_config.light_sleep);
-#ifndef NO_DEBUG
-                dprintf("light sleep time:    %dmin\n", user_config.light_sleep);
-#endif
+                f_gmode_reset_press = 1;
+            } else {
+                if (f_gmode_reset_press) {
+                    f_gmode_reset_press = 0;
+                    game_mode_enable = !game_mode_enable;
+                    game_mode_tweak();
+                }
             }
             return false;
 
@@ -518,7 +457,82 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
 #ifndef NO_DEBUG
                 dprintf("SOCD:    %s(%d)\n", socd_type[user_config.socd_mode], user_config.socd_mode);
 #endif
-                signal_rgb_led(user_config.socd_mode * 2, 0, led_idx.SOCD_TOG, UINT8_MAX, 3000);
+                signal_rgb_led(user_config.socd_mode * 2, led_idx.SOCD_TOG, UINT8_MAX, 3000);
+
+            }
+            return false;
+
+        case QK_RGB_MATRIX_VALUE_UP:
+            if (record->event.pressed) {
+                rgb_matrix_increase_val_noeeprom();
+            }
+            return false;
+
+        case QK_RGB_MATRIX_VALUE_DOWN:
+            if (record->event.pressed) {
+                rgb_matrix_decrease_val_noeeprom();
+            }
+            return false;
+
+        case QK_RGB_MATRIX_MODE_NEXT:
+            if (record->event.pressed) {
+                if (game_mode_enable) {
+                    rgb_matrix_step_game_mode(1);
+                    return false;
+                }
+                rgb_matrix_step_noeeprom();
+            }
+            return false;
+
+        case QK_RGB_MATRIX_MODE_PREVIOUS:
+            if (record->event.pressed) {
+                if (game_mode_enable) {
+                    rgb_matrix_step_game_mode(0);
+                    return false;
+                }
+                rgb_matrix_step_reverse_noeeprom();
+            }
+            return false;
+
+        case QK_RGB_MATRIX_HUE_UP:
+            if (record->event.pressed) {
+                rgb_matrix_increase_hue_noeeprom();
+            }
+            return false;
+
+        case QK_RGB_MATRIX_HUE_DOWN:
+            if (record->event.pressed) {
+                rgb_matrix_decrease_hue_noeeprom();
+            }
+            return false;
+
+        case QK_RGB_MATRIX_SPEED_UP:
+            if (record->event.pressed) {
+                rgb_matrix_increase_speed_noeeprom();
+            }
+            return false;
+
+        case QK_RGB_MATRIX_SPEED_DOWN:
+            if (record->event.pressed) {
+                rgb_matrix_decrease_speed_noeeprom();
+            }
+            return false;
+
+        case QK_RGB_MATRIX_SATURATION_UP:
+            if (record->event.pressed) {
+                rgb_matrix_increase_sat_noeeprom();
+            }
+            return false;
+
+        case QK_RGB_MATRIX_SATURATION_DOWN:
+            if (record->event.pressed) {
+                rgb_matrix_decrease_sat_noeeprom();
+            }
+            return false;
+
+        case QK_RGB_MATRIX_TOGGLE:
+            if (record->event.pressed) {
+                rgb_matrix_toggle_noeeprom();
             }
             return false;
 
@@ -545,10 +559,8 @@ bool rgb_matrix_indicators_kb(void) {
         return false;
     }
 
-    if(f_bat_num_show) {
-        bat_num_led();
-    }
-
+    // low power mode
+    power_save();
     // power down unused LEDs
     led_power_handle();
     return true;
@@ -572,6 +584,7 @@ void keyboard_post_init_kb(void) {
     // debug_keyboard = true;
     // debug_mouse    = true;
 #endif
+    interrupt_source_init();
     keyboard_post_init_user();
 }
 
@@ -586,7 +599,7 @@ void housekeeping_task_kb(void) {
 
     dev_sts_sync();
 
-    custom_key_press();
+    user_key_press();
 //
     led_show();
 

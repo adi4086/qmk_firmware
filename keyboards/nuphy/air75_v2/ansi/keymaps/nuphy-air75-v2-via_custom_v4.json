@@ -171,14 +171,14 @@
 			"shortName": "PrtAr"
 		},
 		{
-			"name": "Side\nLight+",
-			"title": "Side Light +",
-			"shortName": "Sd_L+"
-		},
-		{
 			"name": "Side\nLight-",
 			"title": "Side Light -",
 			"shortName": "Sd_L-"
+		},
+		{
+			"name": "Side\nLight+",
+			"title": "Side Light +",
+			"shortName": "Sd_L+"
 		},
 		{
 			"name": "Side\nMode",
@@ -191,14 +191,14 @@
 			"shortName": "Sd_Col"
 		},
 		{
-			"name": "Side\nFast",
-			"title": "Side Speed +",
-			"shortName": "Sd_Fst"
-		},
-		{
 			"name": "Side\nSlow",
 			"title": "Side Speed -",
 			"shortName": "Sd_Slw"
+		},
+		{
+			"name": "Side\nFast",
+			"title": "Side Speed +",
+			"shortName": "Sd_Fst"
 		},
 		{
 			"name": "Side\nOne",
@@ -241,16 +241,6 @@
 			"shortName": "Numlock_Ind"
 		},
 		{
-			"name": "Sleep\nTrigger",
-			"title": "Trigger Sleep",
-			"shortName": "Sleep_Trg"
-		},
-		{
-			"name": "Game\nMode",
-			"title": "Trigger Game Mode",
-			"shortName": "Game_Mode"
-		},
-		{
 			"name": "Caps_Word\nTrigger",
 			"title": "Trigger Caps_Word",
 			"shortName": "Caps_Word"
@@ -261,19 +251,19 @@
 			"shortName": "Win_Lock"
 		},
 		{
-			"name": "Debounce\nIncrease",
-			"title": "Debounce Increase",
-			"shortName": "Debounce_I"
+			"name": "Sleep\nMode",
+			"title": "Sleep Mode",
+			"shortName": "Sleep"
 		},
 		{
-			"name": "Debounce\nDecrease",
-			"title": "Debounce Decrease",
-			"shortName": "Debounce_D"
+			"name": "Sleep\nTrigger",
+			"title": "Trigger Sleep",
+			"shortName": "Sleep_Trg"
 		},
 		{
-			"name": "Debounce\nType",
-			"title": "Debounce Type",
-			"shortName": "Debounce_T"
+			"name": "Sleep\nDecrease",
+			"title": "Light Sleep Decrease",
+			"shortName": "Sleep_D"
 		},
 		{
 			"name": "Sleep\nIncrease",
@@ -281,9 +271,24 @@
 			"shortName": "Sleep_I"
 		},
 		{
-			"name": "Sleep\nDecrease",
-			"title": "Light Sleep Decrease",
-			"shortName": "Sleep_D"
+			"name": "Debounce\nDecrease",
+			"title": "Debounce Decrease",
+			"shortName": "Debounce_D"
+		},
+		{
+			"name": "Debounce\nIncrease",
+			"title": "Debounce Increase",
+			"shortName": "Debounce_I"
+		},
+		{
+			"name": "Debounce\nType",
+			"title": "Debounce Type",
+			"shortName": "Debounce_T"
+		},
+		{
+			"name": "Game\nMode",
+			"title": "Trigger Game Mode",
+			"shortName": "Game_Mode"
 		},
 		{
 			"name": "SOCD\nToggle",

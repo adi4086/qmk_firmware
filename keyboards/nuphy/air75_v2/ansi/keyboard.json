@@ -27,8 +27,8 @@
         "vid": "0x19F5",
         "pid": "0x3245",
         "polling_interval": 1,
-        "device_version": "0.0.1",
-        "suspend_wakeup_delay": 50,
+        "device_version": "1.0.0",
+        "suspend_wakeup_delay": 100,
         "no_startup_check": true
     },
     "qmk": {
@@ -47,23 +47,24 @@
         "io_delay": 30 
     },
     "ws2812": {
-        "pin": "A7"
+        "pin": "A7",
+        "driver": "bitbang"
     },
     "diode_direction": "COL2ROW",
     "rgb_matrix": {
       "driver": "ws2812",
       "center_point": [80, 30],
-      "max_brightness": 128,
-      "val_steps": 26,
-      "speed_steps": 52,
+      "max_brightness": 144,
+      "val_steps": 18,
+      "speed_steps": 51,
       "sleep": true,
       "led_process_limit": 8,
       "led_flush_limit": 26,
       "default": { 
           "animation": "cycle_left_right",
           "hue": 0,
-          "val": 78,
-          "speed": 151
+          "val": 72,
+          "speed": 153
       },
       "animations": {
           "solid_color": true,
