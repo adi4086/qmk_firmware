@@ -211,11 +211,6 @@
 			"shortName": "DvRst"
 		},
 		{
-			"name": "Sleep\nMode",
-			"title": "Sleep Mode",
-			"shortName": "Sleep"
-		},
-		{
 			"name": "Bat\nShow",
 			"title": "Battery Show",
 			"shortName": "Bat_Show"
